@@ -15,11 +15,12 @@ export const GET: APIRoute = async (context) => {
 
   requestUrl.pathname = SITE_URL
   requestUrl.search = ''
+  const siteOrigin = (import.meta.env.SITE || requestUrl.origin).replace(/\/$/, '')
 
   const response = await rss({
     title: `${tag ? `${tag} | ` : ''}${channel.title}`,
     description: channel.description,
-    site: requestUrl.origin,
+    site: siteOrigin,
     trailingSlash: false,
     stylesheet: getEnv(import.meta.env, context, 'RSS_BEAUTIFY') ? '/rss.xsl' : undefined,
     items: posts.map(item => ({
