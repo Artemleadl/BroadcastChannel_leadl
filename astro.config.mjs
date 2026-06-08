@@ -32,6 +32,7 @@ const adapterProvider = (process.env.HOME === '/dev/shm/home' && process.env.TMP
 
 // https://astro.build/config
 export default defineConfig({
+  site: process.env.SITE_URL || 'https://blog.leadl.ai',
   output: 'server',
   adapter: providers[adapterProvider] || providers.node,
   integrations: [
