@@ -4,6 +4,7 @@ import { getChannelInfo } from '../../lib/telegram'
 export const GET: APIRoute = async (Astro) => {
   const request = Astro.request
   const url = new URL(request.url)
+  const origin = (import.meta.env.SITE || url.origin).replace(/\/$/, '')
   const channel = await getChannelInfo(Astro, {
     before: Astro.params.cursor,
   })
@@ -11,7 +12,7 @@ export const GET: APIRoute = async (Astro) => {
 
   const xmlUrls = posts.map(post => `
     <url>
-      <loc>${url.origin}/posts/${post.id}</loc>
+      <loc>${origin}/posts/${post.id}</loc>
       <lastmod>${new Date(post.datetime).toISOString()}</lastmod>
     </url>
   `).join('')
