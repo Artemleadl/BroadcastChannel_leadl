@@ -2,6 +2,9 @@
 import { getEnv } from '../../lib/env'
 import voidFile from '../../assets/void.png'
 import List from '../../components/list.astro'
+import Layout from '../../layouts/base.astro'
+import type { Post } from '../../types'
+import { buildStaticProxyUrl } from '../../lib/static-proxy'
 import { getChannelInfo, getChannelPost } from '../../lib/telegram'
 import { siteTitleStyle } from '../../lib/ui'
 
@@ -13,12 +16,25 @@ if (!Astro.params.id) {
   return Astro.redirect('/')
 }
 
-const post = await getChannelPost(Astro, Astro.params.id)
+// A missing/non-existent post id must return a real 404 instead of a
+// soft-404 (HTTP 200 + index) that pollutes the search index.
+let post: Post | null = null
+try {
+  post = await getChannelPost(Astro, Astro.params.id)
+} catch {
+  post = null
+}
+
+const postMissing = !post?.id || !post?.content
+
+if (postMissing) {
+  Astro.response.status = 404
+}
 
 const channel = {
   ...(channelInfo || {}),
-  posts: [post],
-  seo: post,
+  posts: postMissing || !post ? [] : [post],
+  seo: postMissing ? { title: 'Page not found', text: 'The requested post does not exist.', noindex: true } : post,
 }
 
 const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY') ?? '/static/'
@@ -27,24 +43,46 @@ const breadcrumbListClass = 'm-0 flex list-none items-center p-0'
 const breadcrumbLinkClass = 'inline-flex items-center no-underline'
 const breadcrumbAvatarClass = 'block h-5 w-5 rounded-full border-2 border-white object-cover shadow-soft'
 const breadcrumbTitleClass = 'ml-[10px] flex-1 text-[14px] text-heading'
+const notFoundWrapClass = 'my-10 text-center'
+const notFoundTitleClass = 'text-[22px] font-semibold text-heading'
+const notFoundTextClass = 'mt-3 text-muted'
+const notFoundLinkClass = 'mt-5 inline-block text-accent no-underline hover:underline'
 ---
 
-<List channel={channel} before={false} after={false} isItem={true} pageHeading={post.title || channel.title}>
-  <nav slot="header" class={breadcrumbClass} aria-label="Breadcrumb">
-    <ol class={breadcrumbListClass}>
-      <li>
-        <a href={SITE_URL} class={breadcrumbLinkClass} title={channel?.title}>
-          <img
-            src={channel?.avatar?.startsWith('http') ? staticProxy + channel?.avatar : voidFile.src}
-            alt={channel?.title}
-            loading="eager"
-            width="20"
-            height="20"
-            class={breadcrumbAvatarClass}
-          />
-          <span class={breadcrumbTitleClass} style={siteTitleStyle}>{channel.title}</span>
+{
+  postMissing ? (
+    <Layout channel={channel}>
+      <div class={notFoundWrapClass}>
+        <h1 class={notFoundTitleClass}>404 — Page not found</h1>
+        <p class={notFoundTextClass}>The requested post does not exist or has been removed.</p>
+        <a href={SITE_URL} class={notFoundLinkClass}>
+          ← Back to home
         </a>
-      </li>
-    </ol>
-  </nav>
-</List>
+      </div>
+    </Layout>
+  ) : (
+    <List channel={channel} before={false} after={false} isItem={true} pageHeading={post?.title || channel.title}>
+      <nav slot="header" class={breadcrumbClass} aria-label="Breadcrumb">
+        <ol class={breadcrumbListClass}>
+          <li>
+            <a href={SITE_URL} class={breadcrumbLinkClass} title={channel?.title}>
+              <img
+                src={
+                  channel?.avatar?.startsWith('http') ? buildStaticProxyUrl(staticProxy, channel.avatar) : voidFile.src
+                }
+                alt={channel?.title}
+                loading="eager"
+                width="20"
+                height="20"
+                class={breadcrumbAvatarClass}
+              />
+              <span class={breadcrumbTitleClass} style={siteTitleStyle}>
+                {channel.title}
+              </span>
+            </a>
+          </li>
+        </ol>
+      </nav>
+    </List>
+  )
+}

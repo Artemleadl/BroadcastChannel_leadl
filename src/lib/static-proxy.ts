@@ -8,8 +8,45 @@ const TARGET_WHITELIST = [
   'yandex.ru',
 ]
 
+const PROTOCOL_PREFIX_RE = /^https?:\/\//i
+const LEADING_SLASHES_RE = /^\/+/
+
+/**
+ * Builds a proxied asset URL.
+ *
+ * For the internal proxy (a root-relative prefix like `/static/`) the target's
+ * scheme is stripped so the generated path contains no `//`. Vercel normalises
+ * `//` in a path with a 308 redirect, which added an extra round-trip to every
+ * image/video; keeping the path as `/static/host/...` avoids that.
+ * `resolveStaticProxyTarget` restores the `https://` scheme on the server side.
+ *
+ * For an external absolute proxy (configured via STATIC_PROXY) the full target,
+ * including its scheme, is preserved.
+ */
+export function buildStaticProxyUrl(staticProxy: string, target: string): string {
+  if (!target) {
+    return target
+  }
+
+  if (staticProxy.startsWith('/')) {
+    const schemeless = target.replace(PROTOCOL_PREFIX_RE, '').replace(LEADING_SLASHES_RE, '')
+    return `${staticProxy}${schemeless}`
+  }
+
+  return `${staticProxy}${target}`
+}
+
 export function resolveStaticProxyTarget(rawTarget: string): URL {
-  const normalizedTarget = rawTarget.startsWith('//') ? `https:${rawTarget}` : rawTarget
+  let normalizedTarget = rawTarget
+
+  if (normalizedTarget.startsWith('//')) {
+    normalizedTarget = `https:${normalizedTarget}`
+  }
+  else if (!PROTOCOL_PREFIX_RE.test(normalizedTarget)) {
+    // Scheme-less target produced by buildStaticProxyUrl (e.g. host/path).
+    normalizedTarget = `https://${normalizedTarget}`
+  }
+
   return new URL(normalizedTarget)
 }
 

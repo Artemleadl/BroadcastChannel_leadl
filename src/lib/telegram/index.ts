@@ -6,6 +6,7 @@ import { LRUCache } from 'lru-cache'
 import { $fetch } from 'ofetch'
 import { getEnv } from '../env'
 import prism from '../prism'
+import { buildStaticProxyUrl } from '../static-proxy'
 
 const STYLE_URL_REGEX = /url\(["'](.*?)["']/i
 const STYLE_DIMENSION_REGEX = {
@@ -92,7 +93,7 @@ function getCustomEmojiImage(emojiId: string | undefined, staticProxy = ''): str
   }
 
   const imageUrl = `https://t.me/i/emoji/${emojiId}.webp`
-  return `${staticProxy}${imageUrl}`
+  return buildStaticProxyUrl(staticProxy, imageUrl)
 }
 
 function isNonEmptyString(value: string | null | undefined): value is string {
@@ -207,8 +208,8 @@ function getVideoStickers($: CheerioAPI, message: MessageSelection, options: Ind
 
     fragments.push(`
     <div style="background-image: none; width: 256px;">
-      <video src="${videoSrc ? staticProxy + videoSrc : ''}" width="256" height="256" aria-label="Video sticker" preload muted autoplay loop playsinline disablepictureinpicture>
-        <img class="sticker" src="${imageSrc ? staticProxy + imageSrc : ''}" alt="Video sticker" width="256" height="256" loading="${loading}" />
+      <video src="${videoSrc ? buildStaticProxyUrl(staticProxy, videoSrc) : ''}" width="256" height="256" aria-label="Video sticker" preload muted autoplay loop playsinline disablepictureinpicture>
+        <img class="sticker" src="${imageSrc ? buildStaticProxyUrl(staticProxy, imageSrc) : ''}" alt="Video sticker" width="256" height="256" loading="${loading}" />
       </video>
     </div>
     `)
@@ -226,7 +227,7 @@ function getImageStickers($: CheerioAPI, message: MessageSelection, options: Ind
     const imageSrc = $(imageNode).attr('data-webp')
 
     fragments.push(
-      `<img class="sticker" src="${imageSrc ? staticProxy + imageSrc : ''}" style="width: 256px;" alt="Sticker" width="256" height="256" loading="${loading}" />`,
+      `<img class="sticker" src="${imageSrc ? buildStaticProxyUrl(staticProxy, imageSrc) : ''}" style="width: 256px;" alt="Sticker" width="256" height="256" loading="${loading}" />`,
     )
   }
 
@@ -258,7 +259,7 @@ function getImages($: CheerioAPI, message: MessageSelection, options: MessageAss
         popovertargetaction="show"
         aria-label="${safePreviewLabel}"
       >
-        <img src="${staticProxy + imageUrl}" alt="${safeTitle}" width="${width}" height="${height}" loading="${loading}" />
+        <img src="${buildStaticProxyUrl(staticProxy, imageUrl)}" alt="${safeTitle}" width="${width}" height="${height}" loading="${loading}" />
       </button>
       <div class="modal" id="${popoverId}" popover aria-label="Image preview">
         <button
@@ -276,7 +277,7 @@ function getImages($: CheerioAPI, message: MessageSelection, options: MessageAss
           aria-label="${safeCloseLabel}"
         >&times;</button>
         <div class="modal__surface">
-          <img class="modal-img" src="${staticProxy + imageUrl}" alt="${safeTitle}" width="${width}" height="${height}" loading="lazy" />
+          <img class="modal-img" src="${buildStaticProxyUrl(staticProxy, imageUrl)}" alt="${safeTitle}" width="${width}" height="${height}" loading="lazy" />
         </div>
       </div>
     `)
@@ -296,7 +297,7 @@ function getVideo($: CheerioAPI, message: MessageSelection, options: IndexedStat
   const videoSrc = video.attr('src')
 
   if (videoSrc) {
-    video.attr('src', staticProxy + videoSrc)
+    video.attr('src', buildStaticProxyUrl(staticProxy, videoSrc))
   }
 
   video
@@ -309,7 +310,7 @@ function getVideo($: CheerioAPI, message: MessageSelection, options: IndexedStat
   const roundVideoSrc = roundVideo.attr('src')
 
   if (roundVideoSrc) {
-    roundVideo.attr('src', staticProxy + roundVideoSrc)
+    roundVideo.attr('src', buildStaticProxyUrl(staticProxy, roundVideoSrc))
   }
 
   roundVideo
@@ -327,7 +328,7 @@ function getAudio($: CheerioAPI, message: MessageSelection, options: StaticProxy
   const audioSrc = audio.attr('src')
 
   if (audioSrc) {
-    audio.attr('src', staticProxy + audioSrc)
+    audio.attr('src', buildStaticProxyUrl(staticProxy, audioSrc))
   }
 
   audio.attr('controls', '')
@@ -346,7 +347,7 @@ function getLinkPreview($: CheerioAPI, message: MessageSelection, options: Index
 
   const image = message.find('.link_preview_image')
   const previewUrl = image.attr('style')?.match(STYLE_URL_REGEX)?.[1]
-  const imageSrc = previewUrl ? staticProxy + previewUrl : ''
+  const imageSrc = previewUrl ? buildStaticProxyUrl(staticProxy, previewUrl) : ''
 
   image.replaceWith(
     `<img class="link_preview_image" alt="${safeTitle}" src="${imageSrc}" width="1200" height="630" loading="${loading}" />`,
@@ -509,6 +510,10 @@ async function extractPost($: CheerioAPI, item: AnyNode | null, options: Extract
     .filter(isNonEmptyString)
     .join('')
     .replace(CONTENT_URL_REGEX, (_match, prefix: string, protocol: string) => {
+      // Internal proxy: drop the scheme so the path has no "//" (see buildStaticProxyUrl).
+      if (staticProxy.startsWith('/')) {
+        return `${prefix}${staticProxy}`
+      }
       const normalizedProtocol = protocol === '//' ? 'https://' : protocol
       return `${prefix}${staticProxy}${normalizedProtocol}`
     })

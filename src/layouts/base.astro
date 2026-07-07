@@ -80,6 +80,52 @@ const seoParams = {
 const GOOGLE_SEARCH_SITE = getEnv(import.meta.env, Astro, 'GOOGLE_SEARCH_SITE')
 const searchAction = GOOGLE_SEARCH_SITE ? 'https://www.google.com/search' : `${SITE_URL}search/result`
 
+// Structured data (Schema.org JSON-LD): Organization + WebSite site-wide,
+// BlogPosting on article pages. Improves rich results and entity understanding
+// for both Google and Yandex.
+const orgLogo = channel?.avatar
+  ? `https://wsrv.nl/?w=512&h=512&fit=cover&url=ssl:${channel.avatar.replace(/^https?:\/\//, '')}`
+  : new URL('favicon.ico', absoluteSiteUrl).toString()
+const articlePost = isArticle ? channel?.posts?.[0] : undefined
+const orgId = `${absoluteSiteUrl}#organization`
+const jsonLdGraph: Record<string, unknown>[] = [
+  {
+    '@type': 'Organization',
+    '@id': orgId,
+    name: siteTitle,
+    url: absoluteSiteUrl,
+    logo: orgLogo,
+  },
+  {
+    '@type': 'WebSite',
+    '@id': `${absoluteSiteUrl}#website`,
+    name: siteTitle,
+    url: absoluteSiteUrl,
+    description: seoDescription,
+    inLanguage: locale,
+    publisher: { '@id': orgId },
+  },
+]
+if (articlePost?.id) {
+  jsonLdGraph.push({
+    '@type': 'BlogPosting',
+    '@id': `${canonical}#article`,
+    headline: (articlePost.title || siteTitle || '').slice(0, 110),
+    datePublished: articlePost.datetime || undefined,
+    dateModified: articlePost.datetime || undefined,
+    description: seoDescription,
+    image: shareImage,
+    url: canonical,
+    mainEntityOfPage: canonical,
+    inLanguage: locale,
+    author: { '@id': orgId },
+    publisher: { '@id': orgId },
+  })
+}
+const jsonLd = { '@context': 'https://schema.org', '@graph': jsonLdGraph }
+// Escape "<" so a "</script>" inside post text cannot break out of the tag.
+const jsonLdString = JSON.stringify(jsonLd).replace(/</g, '\\u003c')
+
 const HEADER_INJECT = getEnv(import.meta.env, Astro, 'HEADER_INJECT')
 const FOOTER_INJECT = getEnv(import.meta.env, Astro, 'FOOTER_INJECT')
 const TAGS = getEnv(import.meta.env, Astro, 'TAGS')
@@ -139,6 +185,7 @@ const searchLabelText = 'Search'
       }}
       {...seoParams}
     />
+    <script type="application/ld+json" set:html={jsonLdString} />
     <Fragment set:html={HEADER_INJECT} />
   </head>
 
