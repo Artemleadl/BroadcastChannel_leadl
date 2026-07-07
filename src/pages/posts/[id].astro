@@ -4,6 +4,7 @@ import voidFile from '../../assets/void.png'
 import List from '../../components/list.astro'
 import Layout from '../../layouts/base.astro'
 import type { Post } from '../../types'
+import { buildStaticProxyUrl } from '../../lib/static-proxy'
 import { getChannelInfo, getChannelPost } from '../../lib/telegram'
 import { siteTitleStyle } from '../../lib/ui'
 
@@ -66,7 +67,9 @@ const notFoundLinkClass = 'mt-5 inline-block text-accent no-underline hover:unde
           <li>
             <a href={SITE_URL} class={breadcrumbLinkClass} title={channel?.title}>
               <img
-                src={channel?.avatar?.startsWith('http') ? staticProxy + channel?.avatar : voidFile.src}
+                src={
+                  channel?.avatar?.startsWith('http') ? buildStaticProxyUrl(staticProxy, channel.avatar) : voidFile.src
+                }
                 alt={channel?.title}
                 loading="eager"
                 width="20"
