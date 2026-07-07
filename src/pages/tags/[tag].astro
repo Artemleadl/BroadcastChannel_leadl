@@ -1,0 +1,40 @@
+---
+import List from '../../components/list.astro'
+import { getEnv } from '../../lib/env'
+import { getChannelInfo } from '../../lib/telegram'
+import type { ChannelInfo } from '../../types'
+
+// Indexable tag pages. Only tags declared in the TAGS env are allowed, so the
+// site cannot generate an unbounded number of indexable URLs; any other tag
+// returns a real 404. Posts are fetched via Telegram search (?q=#tag), the same
+// source the search page already uses.
+const rawTag = decodeURIComponent(Astro.params.tag || '').trim()
+const allowedTags = (getEnv(import.meta.env, Astro, 'TAGS') || '')
+  .split(',')
+  .map((tag) => tag.trim())
+  .filter(Boolean)
+const isAllowed = Boolean(rawTag) && allowedTags.some((tag) => tag.toLowerCase() === rawTag.toLowerCase())
+
+let channel: ChannelInfo
+if (isAllowed) {
+  channel = await getChannelInfo(Astro, { q: `#${rawTag}` })
+  channel.seo = {
+    title: `#${rawTag}`,
+    text: `Публикации по теме #${rawTag}`,
+  }
+} else {
+  Astro.response.status = 404
+  channel = {
+    posts: [],
+    title: 'Page not found',
+    description: '',
+    descriptionHTML: null,
+    avatar: undefined,
+    seo: { title: 'Page not found', text: 'The requested tag does not exist.', noindex: true },
+  }
+}
+
+const pageHeading = isAllowed ? `#${rawTag}` : 'Page not found'
+---
+
+<List channel={channel} before={false} after={false} pageHeading={pageHeading} />

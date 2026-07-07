@@ -16,7 +16,7 @@ const items = (getEnv(import.meta.env, Astro, 'TAGS') || '')
   .map((tag) => tag.trim())
   .filter(Boolean)
   .map((tag) => ({
-    href: `/search/result?q=${encodeURIComponent(`#${tag}`)}`,
+    href: `/tags/${encodeURIComponent(tag)}`,
     label: tag,
   }))
 ---
