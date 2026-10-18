@@ -4,6 +4,8 @@ import sanitizeHtml from 'sanitize-html'
 import { getEnv } from '../lib/env'
 import { getChannelInfo } from '../lib/telegram'
 
+const TRAILING_SLASH_REGEX = /\/$/
+
 export const GET: APIRoute = async (context) => {
   const { SITE_URL } = context.locals
   const tag = context.url.searchParams.get('tag')
@@ -15,7 +17,7 @@ export const GET: APIRoute = async (context) => {
 
   requestUrl.pathname = SITE_URL
   requestUrl.search = ''
-  const siteOrigin = (import.meta.env.SITE || requestUrl.origin).replace(/\/$/, '')
+  const siteOrigin = (import.meta.env.SITE || requestUrl.origin).replace(TRAILING_SLASH_REGEX, '')
 
   const response = await rss({
     title: `${tag ? `${tag} | ` : ''}${channel.title}`,

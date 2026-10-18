@@ -20,7 +20,7 @@ if (isAllowed) {
   channel = await getChannelInfo(Astro, { q: `#${rawTag}` })
   channel.seo = {
     title: `#${rawTag}`,
-    text: `Публикации по теме #${rawTag}`,
+    text: `Статьи и материалы блога Leadl.ai по теме #${rawTag}: практический опыт команды, кейсы и новости продукта.`,
   }
 } else {
   Astro.response.status = 404

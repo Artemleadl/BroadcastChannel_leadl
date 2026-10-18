@@ -8,7 +8,9 @@ import { getEnv } from '../lib/env'
 const channel = await getChannelInfo(Astro)
 
 channel.seo = {
-  title: 'Tags',
+  title: 'Темы и теги',
+  description:
+    'Все темы и теги блога Leadl.ai: статьи и новости о лидогенерации в Telegram, AI-поиске клиентов, B2B-продажах и развитии сервиса.',
 }
 
 const items = (getEnv(import.meta.env, Astro, 'TAGS') || '')

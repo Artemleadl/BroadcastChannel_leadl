@@ -8,7 +8,8 @@ import { getEnv } from '../lib/env'
 const channel = await getChannelInfo(Astro)
 
 channel.seo = {
-  title: 'Links',
+  title: 'Полезные ссылки',
+  description: 'Полезные ссылки и ресурсы экосистемы Leadl.ai: сервисы для поиска клиентов, документация и продукты.',
 }
 
 const links = (getEnv(import.meta.env, Astro, 'LINKS') || '')

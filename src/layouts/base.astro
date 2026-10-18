@@ -2,6 +2,7 @@
 import '../styles/app.css'
 import { SEO } from 'astro-seo'
 import { getEnv } from '../lib/env'
+import { resolveSeoDescription } from '../lib/seo'
 import backToTopIcon from '../assets/back-to-top.svg'
 import type { NavItem } from '../types'
 
@@ -27,9 +28,18 @@ const canonical =
 const { pathname } = new URL(canonical)
 const currentPathname = normalizePathname(pathname)
 const twitter = getEnv(import.meta.env, Astro, 'TWITTER')
+const siteDescriptionEnv =
+  getEnv(import.meta.env, Astro, 'SITE_DESCRIPTION') ??
+  getEnv(import.meta.env, Astro, 'SEO_DESCRIPTION') ??
+  getEnv(import.meta.env, Astro, 'DESCRIPTION')
+
 const pageTitle = seo?.title?.trim()
 const siteTitle = channel?.title ?? ''
-const seoDescription = seo?.text ?? channel?.description
+const seoDescription = resolveSeoDescription({
+  seo,
+  channel,
+  envDescription: siteDescriptionEnv,
+})
 const shareImage = channel?.avatar
   ? `https://wsrv.nl/?w=1200&h=630&fit=cover&url=ssl:${channel.avatar.replace(/^https?:\/\//, '')}`
   : new URL('favicon.ico', absoluteSiteUrl).toString()

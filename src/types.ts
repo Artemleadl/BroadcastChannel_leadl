@@ -31,6 +31,7 @@ export interface ChannelInfo {
 export interface SeoMeta {
   title?: string
   text?: string
+  description?: string
   noindex?: string | boolean
   nofollow?: string | boolean
 }
