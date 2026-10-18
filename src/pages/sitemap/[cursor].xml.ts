@@ -1,10 +1,12 @@
 import type { APIRoute } from 'astro'
 import { getChannelInfo } from '../../lib/telegram'
 
+const TRAILING_SLASH_REGEX = /\/$/
+
 export const GET: APIRoute = async (Astro) => {
   const request = Astro.request
   const url = new URL(request.url)
-  const origin = (import.meta.env.SITE || url.origin).replace(/\/$/, '')
+  const origin = (import.meta.env.SITE || url.origin).replace(TRAILING_SLASH_REGEX, '')
   const channel = await getChannelInfo(Astro, {
     before: Astro.params.cursor,
   })
